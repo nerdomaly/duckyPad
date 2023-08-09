@@ -1,5 +1,3 @@
-# UNDER CONSTRUCTION!!!!
-
 # duckyScript 3 Bytecode Instruction Set
 
 [Get duckyPad](https://www.tindie.com/products/21984/) | [Official Discord](https://discord.gg/4sJCBx5) | [Getting Started](getting_started.md) | [Table of Contents](#table-of-contents)
@@ -8,7 +6,7 @@
 
 Details of duckyPad duckyScript 3 (**DPDS3**) instruction set, compiler, and binary format.
 
-This is NOT the official implementation, which appears to be closed-source.
+This is NOT the official implementation, which appears to be close-source.
 
 I designed everything here myself from scratch.
 
@@ -52,7 +50,7 @@ The binary file should have extension `.dsb` (duckyScript binary).
 
 Normally this is taken care of in the configurator. But you can also try it out on its own:
 
-* [Download the source code](https://github.com/dekuNukem/duckyPad/raw/master/pc_software/ds3/duckypad_config_latest_source.zip)
+* [Download the source code](https://github.com/dekuNukem/duckyPad/blob/master/pc_software/duckyscript3/duckypad_config_latest_source.zip)
 
 * Unzip, and run with Python 3: `python3 make_bytecode.py input output`
 
@@ -92,27 +90,32 @@ HALT
 6    MULT                          ;VAR $spam = 10*7+3
 9    PUSHC     3     0x3           ;VAR $spam = 10*7+3
 12   ADD                           ;VAR $spam = 10*7+3
-15   POP       27    0x1b          ;VAR $spam = 10*7+3
-18   PUSHV     27    0x1b          ;DELAY $spam
+15   POP       0     0x0           ;VAR $spam = 10*7+3
+18   PUSHV     0     0x0           ;DELAY $spam
 21   DELAY                         ;DELAY $spam
 24   HALT
 
---------- Bytecode header ---------
-0x08 0x00 0x1b 0x00 0x1d 0x00 0x00 0x00
+
 
 --------- Bytecode ---------
 0x01 0x0a 0x00 0x01 0x07 0x00 0x11 0x00 0x00
-0x01 0x03 0x00 0x0f 0x00 0x00 0x03 0x1b 0x00
-0x02 0x1b 0x00 0x1b 0x00 0x00 0x08 0x00 0x00
-0x00 0x00
+0x01 0x03 0x00 0x0f 0x00 0x00 0x03 0x00 0x00
+0x02 0x00 0x00 0x1b 0x00 0x00 0x08 0x00 0x00
 
-Binary Size: 37 Bytes
+
+Binary Size: 27 Bytes
+
 ```
 
-## Binary Format
+## Binary Executable
 
-Under construction
+When a key is pressed, the corresponding `.dsb` file is loaded into `bin_buf` in [ds3_vm.c](https://github.com/dekuNukem/duckyPad/blob/master/firmware/code_duckyscript3/Src/ds3_vm.c). Execution occurs inside `run_dsb()` with `execute_instruction()`.
 
+Zero-terminated strings are stored at the end of the binary file.
+
+Variables are stored in `var_buf`. Up to 64 variables can be declared. 
+
+`bin_buf` can hold 2048 bytes, if the file is bigger, chunks are loaded on-the-fly from SD card. This might slow down execution, so try to keep it under 2KB.
 
 ## CPU Instructions
 
@@ -172,26 +175,26 @@ All reference to **"stack"** refers to **Arithmetic Stack**. Unless noted otherw
 |   Opcode<br>Name  | Byte 0<br>Decimal | Byte 0<br>Hex |                                                                                        Comment                                                                                       |   Byte 1  |   Byte 2  |
 |:-------:|:---:|:----:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:---------:|:---------:|
 |  DELAY  |  27 | 0x1b |                                                             Pop one item off top of stack<br>Delay the amount in milliseconds                                                            |           |           |
-|   KUP   |  29 | 0x1d |                                                                                      Release Key                                                                                     |  KEYCODE  |  KEYTYPE  |
-|  KDOWN  |  31 | 0x1f |                                                                                       Press Key                                                                                      |  KEYCODE  |  KEYTYPE  |
+|   KUP   |  28 | 0x1c |                                                                                      Release Key                                                                                     |  KEYCODE  |  KEYTYPE  |
+|  KDOWN  |  29 | 0x1d |                                                                                       Press Key                                                                                      |  KEYCODE  |  KEYTYPE  |
+|   MSCL  |  30 | 0x1e |                                                                                     Mouse Scroll                                                                                     |   Amount  |           |
+|   MMOV  |  31 | 0x1f |                                                                                      Mouse Move                                                                                      |     X     |     Y     |
 |   SWCF  |  32 | 0x20 |                                         Switch Color Fill<br>Pop THREE items off top of stack:<br>Red, Green, Blue<br>Set ALL LED color to the RGB value                                         |           |           |
-|   MSCL  |  33 | 0x21 |                                                                                     Mouse Scroll                                                                                     |   Amount  |           |
-|   MMOV  |  34 | 0x22 |                                                                                      Mouse Move                                                                                      |     X     |     Y     |
-|   SWCC  |  35 | 0x23 |                         Switch Color Change<br>Pop FOUR items off top of stack:<br>N, Red, Green, Blue<br>Set N-th switch to the RGB value<br>If N is 0, set current switch.                         |           |           |
-|   SWCR  |  36 | 0x24 | Switch Color Reset<br>Pop one item off top of stack<br>If value is 0, reset color of current key<br>If value is between 1 and 15, reset color of that key<br>If value is 99, reset color of all keys |           |           |
-|   STR   |  38 | 0x26 |                                                                          Print zero-terminated string at ADDR                                                                         |  ADDR_LSB |  ADDR_MSB |
-|  STRLN  |  39 | 0x27 |                                                                          Same as above, presses ENTER at end                                                                         |           |           |
-|   EMUK  |  40 | 0x28 |                                                                                     EMUK command                                                                                     |  KEYCODE  |  KEYTYPE  |
-|   OLC   |  42 | 0x2a |                                                      OLED_CURSOR<br>Pop TWO items off top of stack:<br>X and Y<br>Change OLED cursor to that                                                     |           |           |
-|   OLP   |  43 | 0x2b |                                                                      Print zero-terminated string at ADDR to OLED                                                                     |  ADDR_LSB |  ADDR_MSB |
-|   OLU   |  44 | 0x2c |                                                                                      OLED_UPDATE                                                                                     |           |           |
-|   OLB   |  45 | 0x2d |                                                                                      OLED_CLEAR                                                                                      |           |           |
-|   OLR   |  46 | 0x2e |                                                                                     OLED_RESTORE                                                                                     |           |           |
-|   BCLR  |  47 | 0x2f |                                                                              Clears button status buffer                                                                             |           |           |
-|  PREVP  |  48 | 0x30 |                                                                                   Previous profile                                                                                   |           |           |
-|  NEXTP  |  49 | 0x31 |                                                                                     Next profile                                                                                     |           |           |
-|  GOTOP  |  50 | 0x32 |                                                               Pop one item off top of stack<br>Go to profile of that value                                                               |           |           |
-|  SLEEP  |  51 | 0x33 |                                                                       Put duckyPad to sleep<br>Terminates execution                                                                      |           |           |
+|   SWCC  |  33 | 0x21 |                         Switch Color Change<br>Pop FOUR items off top of stack:<br>N, Red, Green, Blue<br>Set N-th switch to the RGB value<br>If N is 0, set current switch.                         |           |           |
+|   SWCR  |  34 | 0x22 | Switch Color Reset<br>Pop one item off top of stack<br>If value is 0, reset color of current key<br>If value is between 1 and 15, reset color of that key<br>If value is 99, reset color of all keys |           |           |
+|   STR   |  35 | 0x23 |                                                                          Print zero-terminated string at ADDR                                                                         |  ADDR_LSB |  ADDR_MSB |
+|  STRLN  |  36 | 0x24 |                                                                          Same as above, presses ENTER at end                                                                         |           |           |
+|   EMUK  |  37 | 0x25 |                                                                                     EMUK command                                                                                     |  KEYCODE  |  KEYTYPE  |
+|   OLC   |  38 | 0x26 |                                                      OLED_CURSOR<br>Pop TWO items off top of stack:<br>X and Y<br>Change OLED cursor to that                                                     |           |           |
+|   OLP   |  39 | 0x27 |                                                                      Print zero-terminated string at ADDR to OLED                                                                     |  ADDR_LSB |  ADDR_MSB |
+|   OLU   |  40 | 0x28 |                                                                                      OLED_UPDATE                                                                                     |           |           |
+|   OLB   |  41 | 0x29 |                                                                                      OLED_CLEAR                                                                                      |           |           |
+|   OLR   |  42 | 0x2a |                                                                                     OLED_RESTORE                                                                                     |           |           |
+|   BCLR  |  43 | 0x2b |                                                                              Clears button status buffer                                                                             |           |           |
+|  PREVP  |  44 | 0x2c |                                                                                   Previous profile                                                                                   |           |           |
+|  NEXTP  |  45 | 0x2d |                                                                                     Next profile                                                                                     |           |           |
+|  GOTOP  |  46 | 0x2e |                                                               Pop one item off top of stack<br>Go to profile of that value                                                               |           |           |
+|  SLEEP  |  47 | 0x2f |                                                                       Put duckyPad to sleep<br>Terminates execution                                                                      |           |           |
 
 ## Project Pages
 
